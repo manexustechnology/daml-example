@@ -1,0 +1,19 @@
+module BankAccount where
+
+template BankAccount
+    with
+        bank: Party
+        accountOwner: Party
+        balance: Decimal
+    where
+        signatory bank
+        choice Deposit: ContractId BankAccount
+            with amount: Decimal
+                controller accountOwner
+                do
+                    create BankAccount with
+                        bank = bank
+                        accountOwner = accountOwner
+                        balance = balance + amount
+    
+

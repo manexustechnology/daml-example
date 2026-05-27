@@ -1,0 +1,24 @@
+module Basics.HelloWorld where
+
+import Daml.Script
+
+template HelloWorld
+  with
+    owner : Party
+    message : Text
+  where
+    signatory owner
+
+test : Script ()
+test = script do
+  alice <- allocateParty "Alice"
+
+  cid <- submit alice do
+    createCmd HelloWorld with
+      owner = alice
+      message = "Hello, DAML!"
+
+  contracts <- query @HelloWorld alice
+  debug ("Alice sees:", contracts)
+
+  pure ()

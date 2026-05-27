@@ -1,0 +1,42 @@
+module Basics.Primitives where
+
+import Daml.Script
+import DA.Date (date, Month(..))
+
+template TypeZoo
+  with
+    owner    : Party          -- on-ledger identity
+    aBool    : Bool           -- True / False
+    anInt    : Int            -- 64-bit SIGNED integer
+    aDecimal : Decimal        -- fixed-point
+    aText    : Text           -- string
+    aTime    : Time           -- absolute UTC timestamp
+    aDate    : Date
+    maybe    : Optional Int   -- None
+    aList    : [Text]         -- a list
+  where
+    signatory owner
+
+test : Script ()
+test = script do
+  alice <- allocateParty "Alice"
+  now <- getTime
+
+  cid <- submit alice do
+    createCmd TypeZoo with
+      owner = alice
+      aBool = True
+      anInt = 42
+      aDecimal = 3.14
+      aText = "hi"
+      aTime = now
+      aDate = date 2026 Jan 1
+      maybe = Some 7
+      aList = ["a", "b", "c"]
+
+  let describe = case Some 7 of
+        None -> "nothing"
+        Some x -> "got " <> show x
+  debug ("created", cid, describe)
+
+  pure ()

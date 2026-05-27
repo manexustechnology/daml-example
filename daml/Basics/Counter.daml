@@ -1,0 +1,44 @@
+module Basics.Counter where
+
+import Daml.Script
+import DA.Assert ((===))
+
+template Counter
+  with
+    owner : Party
+    count : Int
+  where
+    signatory owner
+
+    choice Increment : ContractId Counter
+      controller owner
+      do create this with count = count + 1
+
+    choice Decrement : ContractId Counter
+      controller owner
+      do
+        assertMsg "Counter cannot go below zero" (count > 0)
+        create this with count = count - 1
+
+    nonconsuming choice Get : Int
+      controller owner
+      do pure count
+
+test : Script ()
+test = script do
+  alice <- allocateParty "Alice"
+
+  c0 <- submit alice do createCmd Counter with owner = alice, count = 0
+
+  c1 <- submit alice do exerciseCmd c0 Increment
+  c2 <- submit alice do exerciseCmd c1 Increment
+
+  n <- submit alice do exerciseCmd c2 Get
+  n === 2
+
+  _c3 <- submit alice do exerciseCmd c2 Decrement
+
+  z0 <- submit alice do createCmd Counter with owner = alice, count = 0
+  submitMustFail alice do exerciseCmd z0 Decrement
+
+  pure ()
