@@ -1,0 +1,47 @@
+module Basics.ProposeAccept where
+
+import Daml.Script
+
+template Agreement
+  with
+    employer : Party
+    employee : Party
+    salary   : Decimal
+  where
+    signatory employer, employee
+
+template AgreementProposal
+  with
+    employer : Party
+    employee : Party
+    salary   : Decimal
+  where
+    signatory employer
+    observer employee
+
+    choice Accept : ContractId Agreement
+      controller employee
+      do
+        create Agreement with employer, employee, salary
+
+    choice Reject : ()
+      controller employee
+      do pure ()
+
+test : Script ()
+test = script do
+  acme <- allocateParty "Acme"
+  bob  <- allocateParty "Bob"
+
+  submitMustFail acme do
+    createCmd Agreement with employer = acme, employee = bob, salary = 100.0
+
+  prop <- submit acme do
+    createCmd AgreementProposal with employer = acme, employee = bob, salary = 100.0
+
+  _agreement <- submit bob do exerciseCmd prop Accept
+
+  agreements <- query @Agreement bob
+  debug ("active agreements", agreements)
+
+  pure ()

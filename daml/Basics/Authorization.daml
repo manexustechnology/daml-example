@@ -1,0 +1,40 @@
+module Basics.Authorization where
+
+import Daml.Script
+
+template Secret
+  with
+    owner    : Party
+    audience : Party
+    content  : Text
+  where
+    ensure content /= ""
+
+    signatory owner
+    observer audience 
+
+    nonconsuming choice Reveal : Text
+      controller audience
+      do pure content
+
+test : Script ()
+test = script do
+  alice   <- allocateParty "Alice"
+  bob     <- allocateParty "Bob"
+  charlie <- allocateParty "Charlie"
+
+  submitMustFail alice do
+    createCmd Secret with owner = alice, audience = bob, content = ""
+
+  cid <- submit alice do
+    createCmd Secret with owner = alice, audience = bob, content = "launch codes"
+
+  charlieView <- query @Secret charlie
+  debug ("Charlie sees", charlieView)
+
+  secret <- submit bob do exerciseCmd cid Reveal
+  debug ("Bob revealed", secret)
+
+  submitMustFail charlie do exerciseCmd cid Reveal
+
+  pure ()
