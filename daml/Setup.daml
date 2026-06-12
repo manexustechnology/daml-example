@@ -1,0 +1,23 @@
+module Setup where
+
+import Daml.Script
+import Apps.Iou
+
+setup : Script ()
+setup = do
+  bank  <- allocatePartyWithHint "Bank"  (PartyIdHint "Bank")
+  alice <- allocatePartyWithHint "Alice" (PartyIdHint "Alice")
+  bob   <- allocatePartyWithHint "Bob"   (PartyIdHint "Bob")
+
+  bankId  <- validateUserId "bank"
+  aliceId <- validateUserId "alice"
+  bobId   <- validateUserId "bob"
+
+  createUser (User bankId  (Some bank))  [CanActAs bank]
+  createUser (User aliceId (Some alice)) [CanActAs alice]
+  createUser (User bobId   (Some bob))   [CanActAs bob]
+
+  submit bank do createCmd Iou with issuer = bank; owner = alice; amount = 100.0
+  submit bank do createCmd Iou with issuer = bank; owner = bob;   amount = 50.0
+
+  pure ()
